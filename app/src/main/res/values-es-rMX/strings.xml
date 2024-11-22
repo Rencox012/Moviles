@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">SpendLess</string>
+    <string name="carga">Cargando</string>
+    <string name="sing_in">Registrate</string>
+    <string name="iniciar_sesion">Iniciar sesion</string>
+    <string-array name="themes">
+        <item>Claro</item>
+        <item>Oscuro</item>
+    </string-array>
+    <string-array name="theme_options">
+        <item>Light</item>
+        <item>Dark</item>
+    </string-array>
+    <string-array name="divisa_options">
+        <item>MXN</item>
+        <item>DLL</item>
+    </string-array>
+</resources>

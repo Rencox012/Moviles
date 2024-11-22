@@ -1,0 +1,25 @@
+<resources>
+    <string name="app_name">SpendLess</string>
+    <string name="carga">Loading</string>
+    <string name="sing_in">Sing In</string>
+    <string name="iniciar_sesion">Iniciar sesion</string>
+    <string name="title_activity_login">LoginActivity</string>
+    <string-array name="themes">
+        <item>Bright</item>
+        <item>Dark</item>
+    </string-array>
+    <string-array name="currencies">
+        <item>MXN</item>
+        <item>DLL</item>
+    </string-array>
+    <string name="title_activity_register">RegisterActivity</string>
+    <string name="title_activity_home">HomeActivity</string>
+    <string-array name="theme_options">
+        <item>Light</item>
+        <item>Dark</item>
+    </string-array>
+    <string-array name="divisa_options">
+        <item>MXN</item>
+        <item>DLL</item>
+    </string-array>
+</resources>

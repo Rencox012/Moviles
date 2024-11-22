@@ -1,5 +1,6 @@
 package com.example.mobiles
 
+
 import TransaccionesModelFactory
 import UsuariosViewModelFactory
 import android.content.Intent
@@ -58,6 +59,7 @@ class HistorialActivity: ComponentActivity() {
         val inicioBoton = findViewById<TextView>(R.id.inicio)
         val logOffButton = findViewById<TextView>(R.id.logoutButton)
         val perfilBoton = findViewById<TextView>(R.id.perfil)
+        val configBoton = findViewById<TextView>(R.id.configuracion)
         perfilBoton.setOnClickListener {
             handleSendToPerfil()
         }
@@ -71,6 +73,10 @@ class HistorialActivity: ComponentActivity() {
 
         searchButton.setOnClickListener {
             searchTransactions()
+        }
+
+        configBoton.setOnClickListener {
+            handleSendToConfig()
         }
 
         inicioBoton.setOnClickListener {
@@ -138,6 +144,11 @@ class HistorialActivity: ComponentActivity() {
     }
     private fun handleSendToPerfil(){
         val intent = Intent(this, PerfilActivity::class.java)
+        startActivity(intent)
+    }
+
+    private fun handleSendToConfig(){
+        val intent = Intent(this, ConfigActivity::class.java)
         startActivity(intent)
     }
 

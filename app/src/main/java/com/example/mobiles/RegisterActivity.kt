@@ -28,7 +28,7 @@ class RegisterActivity : ComponentActivity() {
         setContentView(R.layout.activity_registro)
 
 
-        val username_input = findViewById<EditText>(R.id.aliasInput)
+        val username_input = findViewById<EditText>(R.id.usuarioInput)
         val email_input = findViewById<EditText>(R.id.emailInput)
         val password_input = findViewById<EditText>(R.id.passwordInput)
         val validation_password_input = findViewById<EditText>(R.id.confirmPasswordInput)

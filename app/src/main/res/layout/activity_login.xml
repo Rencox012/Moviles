@@ -49,10 +49,10 @@
             android:id="@+id/login_title"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Iniciar Sesión"
+            android:text="Inicia Sesión"
             android:textColor="@color/amarilloClaro"
             android:layout_gravity="center"
-            android:layout_marginBottom="50dp"
+            android:layout_marginBottom="30dp"
             android:textSize="22sp"/>
 
 
@@ -84,14 +84,13 @@
         <Button
             android:id="@+id/iniciar_sesion_button"
             android:layout_width="match_parent"
-            android:layout_height="23dp"
-            android:background="@drawable/rounded_button"
-            android:text="@string/iniciar_sesion"
-            android:textSize="9sp"
-            android:layout_marginTop="30dp"
-            android:layout_marginBottom="12dp"
-            android:layout_gravity="center"
-            android:gravity="center"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="50dp"
+            android:layout_marginEnd="50dp"
+            android:layout_marginTop="25dp"
+            android:background="@drawable/background_button_login"
+            android:text="Iniciar sesión"
+            android:textColor="@color/amarilloClaro"
 
             />
 

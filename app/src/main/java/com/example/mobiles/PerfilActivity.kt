@@ -93,6 +93,10 @@ class PerfilActivity: ComponentActivity() {
         historialBoton.setOnClickListener {
             handleSendToHistory()
         }
+        val configBoton = findViewById<TextView>(R.id.configuracion)
+        configBoton.setOnClickListener {
+            handleSendToConfig()
+        }
         val logOffButton = findViewById<TextView>(R.id.logoutButton)
         logOffButton.setOnClickListener {
             logOutUser()
@@ -236,7 +240,10 @@ class PerfilActivity: ComponentActivity() {
         startActivity(intent)
     }
 
-
+    private fun handleSendToConfig(){
+        val intent = Intent(this, ConfigActivity::class.java)
+        startActivity(intent)
+    }
 
     private fun handleSendToInicio(){
         val intent = Intent(this, HomeActivity::class.java)

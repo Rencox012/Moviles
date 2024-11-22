@@ -68,6 +68,10 @@ class HomeActivity : ComponentActivity() {
         historialBoton.setOnClickListener {
             handleSendToHistory()
         }
+        val configBoton = findViewById<TextView>(R.id.configuracion)
+        configBoton.setOnClickListener {
+            handleSendToConfig()
+        }
         val perfilBoton = findViewById<TextView>(R.id.perfil)
         perfilBoton.setOnClickListener {
             handleSendToPerfil()
@@ -491,7 +495,10 @@ class HomeActivity : ComponentActivity() {
         val intent = Intent(this, PerfilActivity::class.java)
         startActivity(intent)
     }
-
+    private fun handleSendToConfig(){
+        val intent = Intent(this, ConfigActivity::class.java)
+        startActivity(intent)
+    }
     private fun logOutUser(){
         //antes de cerrar sesion, le preguntaremos al usuario si esta seguro
         sweetAlert().warningAlertWithAction("¿Estás seguro que deseas cerrar sesión?", "Cerrar sesión", this){

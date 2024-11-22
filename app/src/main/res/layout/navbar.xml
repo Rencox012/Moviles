@@ -16,16 +16,7 @@
         android:src="@drawable/menu_icon"
         android:contentDescription="Menú" />
 
-    <!-- Título -->
-    <TextView
-        android:id="@+id/navTitle"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_weight="1"
-        android:gravity="center"
-        android:text="SPENDLESS"
-        android:textSize="18sp"
-        android:textStyle="bold" />
+
 
     <!-- Icono de perfil -->
     <TextView

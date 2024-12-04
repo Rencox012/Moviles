@@ -63,6 +63,7 @@ dependencies {
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
+    implementation(libs.firebase.crashlytics.buildtools)
     testImplementation(libs.junit)
     implementation ("com.github.taimoorsultani:android-sweetalert2:2.0.2")
     implementation("com.squareup.retrofit2:retrofit:2.9.0")

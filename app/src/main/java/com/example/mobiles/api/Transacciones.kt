@@ -5,8 +5,8 @@ import retrofit2.Call
 import retrofit2.http.Body
 import retrofit2.http.DELETE
 import retrofit2.http.GET
-import retrofit2.http.PATCH
 import retrofit2.http.POST
+import retrofit2.http.PUT
 import retrofit2.http.Path
 
 interface TransaccionesApi {
@@ -50,8 +50,9 @@ interface TransaccionesApi {
     ): Call<Transaccion>
 
     //Actualizar una transaccion
-    @PATCH("transacciones/{id}")
+    @PUT("transacciones/{id}")
     fun updateTransaction(
-        @Path("id") id: String
+        @Path("id") id: String,
+        @Body transaccion: Transaccion
     ): Call<Transaccion>
 }

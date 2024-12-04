@@ -42,11 +42,11 @@ class sweetAlert {
         Sweetalert(context, Sweetalert.WARNING_TYPE)
             .setTitleText(title)
             .setContentText(msg)
-            .setConfirmText("Yes,delete it!")
             .setConfirmClickListener { sDialog -> sDialog.dismissWithAnimation() }
             .setCancelButton(
-                "Salir"
+                "Aceptar"
             ) { action() }
+            .setConfirmButton("Aceptar") { action() }
             .show()
     }
 }

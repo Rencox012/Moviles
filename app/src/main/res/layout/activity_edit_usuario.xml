@@ -154,13 +154,6 @@
             android:padding="12dp"
             android:id="@+id/inicio" />
 
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Configuración"
-            android:textSize="18sp"
-            android:padding="12dp"
-            android:id="@+id/configuracion" />
 
         <TextView
             android:layout_width="match_parent"

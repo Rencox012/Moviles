@@ -47,9 +47,14 @@
 
         </activity>
         <activity
+            android:name=".EditarActivity"
+            android:exported="false"
+            android:label="EditarActivity"
+            android:theme="@style/Theme.Mobiles" />
+        <activity
             android:name=".CargandoActivity"
             android:exported="true"
-            android:label="CargandoActivity"
+            android:label="Spendless"
             android:theme="@style/Theme.Mobiles">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

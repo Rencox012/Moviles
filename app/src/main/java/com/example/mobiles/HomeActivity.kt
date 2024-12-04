@@ -9,13 +9,16 @@ import android.graphics.BitmapFactory
 import android.graphics.drawable.BitmapDrawable
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
+import android.net.Uri
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
 import android.util.Base64
+import android.widget.Button
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.activity.ComponentActivity
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.core.view.GravityCompat
 import androidx.drawerlayout.widget.DrawerLayout
@@ -25,12 +28,14 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.mobiles.Room.DatabaseApp
 import com.example.mobiles.Room.TransaccionEntity
+import com.example.mobiles.adaptadores.AdaptadorImagenesHome
 import com.example.mobiles.adaptadores.AdaptadorTransacciones
 import com.example.mobiles.classes.CreateTransactionRequest
 import com.example.mobiles.classes.Transaccion
 import com.example.mobiles.utlidades.sweetAlert
 import com.examples.mobiles.view.TransaccionesViewModel
 import com.examples.mobiles.view.UsuariosViewModel
+import com.google.gson.Gson
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
@@ -52,11 +57,13 @@ class HomeActivity : ComponentActivity() {
     }
     private lateinit var transaccionesAdapter: AdaptadorTransacciones
 
-
-
+    private lateinit var imagesRecyclerView: RecyclerView
+    private val selectedImages = mutableListOf<Uri>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+
 
         setContentView(R.layout.activity_home)
         // Obtén referencias a los componentes
@@ -64,13 +71,21 @@ class HomeActivity : ComponentActivity() {
         val menuButton = findViewById<ImageView>(R.id.menuButton)
         val logOffButton = findViewById<TextView>(R.id.logoutButton)
 
+
+
+        imagesRecyclerView = findViewById(R.id.images_recycler_view)
+        imagesRecyclerView.layoutManager = LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false)
+        imagesRecyclerView.adapter = AdaptadorImagenesHome(selectedImages)
+
+        val selectImagesButton: Button = findViewById(R.id.select_images_button)
+        selectImagesButton.setOnClickListener {
+            openImageSelector()
+        }
+
+
         val historialBoton = findViewById<TextView>(R.id.historial)
         historialBoton.setOnClickListener {
             handleSendToHistory()
-        }
-        val configBoton = findViewById<TextView>(R.id.configuracion)
-        configBoton.setOnClickListener {
-            handleSendToConfig()
         }
         val perfilBoton = findViewById<TextView>(R.id.perfil)
         perfilBoton.setOnClickListener {
@@ -83,26 +98,19 @@ class HomeActivity : ComponentActivity() {
 
         sincronizarTransacciones()
 
-        cambiarAlias()
-        cambiarFotoPerfil()
 
         val recyclerView = findViewById<RecyclerView>(R.id.latest_movements_recyclerview)
         recyclerView.layoutManager = LinearLayoutManager(this)
 
         val cantidadInput = findViewById<TextView>(R.id.amount_input)
         val descripcionInput = findViewById<TextView>(R.id.description_input)
-        val imagen_input = findViewById<ImageView>(R.id.image_input)
-        imagen_input.setOnClickListener {
-            openImageSelector()
-        }
 
         // Abre el menú lateral al hacer clic en el botón
         menuButton.setOnClickListener {
-            if(!drawerLayout.isDrawerOpen(GravityCompat.START)){
+            if (!drawerLayout.isDrawerOpen(GravityCompat.START)) {
                 drawerLayout.openDrawer(GravityCompat.START)
-            }
-            else{
-                drawerLayout.closeDrawer(GravityCompat.END)
+            } else {
+                drawerLayout.closeDrawer(GravityCompat.START)
             }
         }
 
@@ -150,11 +158,11 @@ class HomeActivity : ComponentActivity() {
             }
         })
 
-        transaccionesViewModel.transacciones.observe(this) { transaccion ->
-            if (transaccion != null) {
+        transaccionesViewModel.transacciones.observe(this) { transacciones ->
+            if (transacciones != null) {
                 //insertamos las transacciones en la base de datos local
                 lifecycleScope.launch(Dispatchers.IO) {
-                    for (transaccion in transaccion) {
+                    for (transaccion in transacciones) {
 
                         //antes de insertar, checamos si ya existe el ID remoto en la base ed datos
                         val existe = DatabaseApp.database.transaccionDao().obtenerTransaccionPorIdRemoto(transaccion._id)
@@ -163,16 +171,7 @@ class HomeActivity : ComponentActivity() {
                             continue
                         }
 
-                        val transaccionEntity = TransaccionEntity(
-                            idRemoto = transaccion._id,
-                            monto = transaccion.monto,
-                            tipo = transaccion.tipo,
-                            fechaTransac = transaccion.fecha_transac,
-                            descripcion = transaccion.descripcion,
-                            usuarioId = transaccion.usuario_id,
-                            imagen = transaccion.imagen,
-                            estado = 1
-                        )
+                        val transaccionEntity = Transaccion.toEntity(transaccion)
 
                         DatabaseApp.database.transaccionDao().insertarTransaccion(transaccionEntity)
                     }
@@ -184,12 +183,6 @@ class HomeActivity : ComponentActivity() {
             }
         }
 
-        //Cuando se carge la actividad, se obtiene el balance del usuario con el intent extra idUser
-        val idUsuario = intent.getStringExtra("idUser")
-        if (idUsuario != null) {
-            handleObtainBalance(idUsuario, balanceUsuarioTexto)
-            handleObtainAllLocalTransactions()
-        }
 
         agregarIngresoBoton.setOnClickListener {
             if(cantidadInput.text.toString().isEmpty()){
@@ -200,13 +193,13 @@ class HomeActivity : ComponentActivity() {
                 sweetAlert().errorAlert("La descripción no puede estar vacía", "Error", this)
                 return@setOnClickListener
             }
-            if(imagen_input.drawable == null){
-                sweetAlert().errorAlert("La imagen no puede estar vacía", "Error", this)
+            //There must be at least one image selected
+            if(selectedImages.isEmpty()){
+                sweetAlert().errorAlert("Debe seleccionar al menos una imagen", "Error", this)
                 return@setOnClickListener
             }
             val cantidad = cantidadInput.text.toString().toDouble()
             val descripcion = descripcionInput.text.toString()
-            val imagen = convertImageViewToBase64(imagen_input)
             if(cantidad <= 0){
                 sweetAlert().errorAlert("El monto debe ser mayor a 0", "Error", this)
                 return@setOnClickListener
@@ -215,11 +208,12 @@ class HomeActivity : ComponentActivity() {
                 sweetAlert().errorAlert("La descripción no puede estar vacía", "Error", this)
                 return@setOnClickListener
             }
-            if(imagen.isEmpty()){
-                sweetAlert().errorAlert("La imagen no puede estar vacía", "Error", this)
+            //There has to be at least one image selected
+            if(selectedImages.isEmpty()){
+                sweetAlert().errorAlert("Debe seleccionar al menos una imagen", "Error", this)
                 return@setOnClickListener
             }
-            handleAddTransaction(cantidad, descripcion, "ingreso", imagen)
+            handleAddTransaction(cantidad, descripcion, "ingreso", selectedImages)
         }
 
         agregarGastoBoton.setOnClickListener {
@@ -231,13 +225,13 @@ class HomeActivity : ComponentActivity() {
                 sweetAlert().errorAlert("La descripción no puede estar vacía", "Error", this)
                 return@setOnClickListener
             }
-            if(imagen_input.drawable == null){
-                sweetAlert().errorAlert("La imagen no puede estar vacía", "Error", this)
+            //There has to be at least one image selected
+            if(selectedImages.isEmpty()){
+                sweetAlert().errorAlert("Debe seleccionar al menos una imagen", "Error", this)
                 return@setOnClickListener
             }
             val cantidad = cantidadInput.text.toString().toDouble()
             val descripcion = descripcionInput.text.toString()
-            val imagen = convertImageViewToBase64(imagen_input)
             if(cantidad <= 0){
                 sweetAlert().errorAlert("El monto debe ser mayor a 0", "Error", this)
                 return@setOnClickListener
@@ -246,11 +240,12 @@ class HomeActivity : ComponentActivity() {
                 sweetAlert().errorAlert("La descripción no puede estar vacía", "Error", this)
                 return@setOnClickListener
             }
-            if(imagen.isEmpty()){
-                sweetAlert().errorAlert("La imagen no puede estar vacía", "Error", this)
+            //There has to be at least one image selected
+            if(selectedImages.isEmpty()){
+                sweetAlert().errorAlert("Debe seleccionar al menos una imagen", "Error", this)
                 return@setOnClickListener
             }
-            handleAddTransaction(cantidad, descripcion, "gasto", imagen)
+            handleAddTransaction(cantidad, descripcion, "gasto", selectedImages)
         }
 
 
@@ -306,10 +301,10 @@ class HomeActivity : ComponentActivity() {
     }
 
 
-    private fun handleAddTransaction(ammount: Double, description: String, type: String, imagen: String = "") {
+    private fun handleAddTransaction(ammount: Double, description: String, type: String, imagen: List<Uri>) {
         lifecycleScope.launch(Dispatchers.IO) {
-            val idUsuario = intent.getStringExtra("idUser")
-            if (idUsuario != null) {
+            val userid = usuariosViewModel.dataStoreManager.getUsuarioId().first()?:""
+            if (userid != "") {
                 // Obtenemos el día, mes y año actual
                 val calendar = Calendar.getInstance()
                 val day = calendar.get(Calendar.DAY_OF_MONTH)
@@ -318,20 +313,33 @@ class HomeActivity : ComponentActivity() {
 
                 val fechaTransac = "$year-$month-$day"
 
+
+                // Convert from uri to base64 string
+                val imagenesString = imagen.map {
+                    val inputStream = contentResolver.openInputStream(it)
+                    val byteArray = inputStream?.readBytes()
+                    val base64 = Base64.encodeToString(byteArray, Base64.DEFAULT)
+                    base64
+                }
+
+                // Convert the list of base64 strings to a JSON string
+                val imagenJson = Gson().toJson(imagenesString)
+
                 val transaccionEntity = TransaccionEntity(
                     idRemoto = null, // Se asignará después de la sincronización
                     monto = ammount,
                     tipo = type,
                     fechaTransac =fechaTransac,
                     descripcion = description,
-                    usuarioId = idUsuario,
-                    imagen = imagen,
-                    estado = 0 // No sincronizada
+                    usuarioId = userid,
+                    imagen = imagenJson,
+                    estado = 0, // No sincronizada
+                    activo = 1
                 )
                 val result = DatabaseApp.database.transaccionDao().insertarTransaccion(transaccionEntity)
                 if(result != -1L) {
                     //Actualizamos el balance del usuario
-                    handleObtainBalance(idUsuario, findViewById(R.id.total_savings))
+                    handleObtainBalance(userid, findViewById(R.id.total_savings))
                     CoroutineScope(Dispatchers.Main).launch {
                         sweetAlert().successAlert("Transacción guardada", "Éxito", this@HomeActivity)
                     }
@@ -374,21 +382,14 @@ class HomeActivity : ComponentActivity() {
 
     private fun handleObtainAllLocalTransactions(){
         lifecycleScope.launch(Dispatchers.IO) {
-            val transacciones = DatabaseApp.database.transaccionDao().obtenerTransaccionesPorUsuario(intent.getStringExtra("idUser")!!)
+            val userid = usuariosViewModel.dataStoreManager.getUsuarioId().first()?:""
+            userID = userid
+            val transacciones = DatabaseApp.database.transaccionDao().obtenerTransaccionesPorUsuario(userid)
             if(transacciones.isEmpty()){
                 return@launch
             }
             val transaccionesList = transacciones.map {
-                Transaccion(
-                    it.id.toString(),
-                    it.monto,
-                    it.tipo,
-                    it.imagen?:"",
-                    it.fechaTransac,
-                    it.descripcion?:"",
-                    it.usuarioId,
-                    it.estado
-                )
+                Transaccion.fromEntity(it)
             }
 
             withContext(Dispatchers.Main){
@@ -416,50 +417,79 @@ class HomeActivity : ComponentActivity() {
     }
 
 
-    private fun sincronizarTransacciones(){
+    private fun sincronizarTransacciones() {
         if (!isNetworkAvailable(this)) {
             sweetAlert().warningAlert("Las transacciones solo se guardaran locamente hasta que haya conexion.", "No hay conexion a internet", this)
             return
         }
-        //Empezamos por obtener las transacciones no sincronizadas
+        // Empezamos por obtener las transacciones no sincronizadas
         lifecycleScope.launch(Dispatchers.IO) {
-            val transaccionesNoSincronizadas =
-                DatabaseApp.database.transaccionDao().obtenerTransaccionesNoSincronizadas()
+            val userid = usuariosViewModel.dataStoreManager.getUsuarioId().first() ?: ""
+            userID = userid
+            val transaccionesNoSincronizadas = DatabaseApp.database.transaccionDao().obtenerTransaccionesNoSincronizadas()
             if (transaccionesNoSincronizadas.isEmpty()) {
                 return@launch
             }
-            //Obtenemos el id del usuario
-            val idUsuario = intent.getStringExtra("idUser")
-            if (idUsuario != null) {
-                //Iteramos sobre las transacciones no sincronizadas
+            // Obtenemos el id del usuario
+            val idUsuario = userid
+            if (idUsuario != "") {
+                // Iteramos sobre las transacciones no sincronizadas
                 for (transaccion in transaccionesNoSincronizadas) {
-                    val transaccionEnviar = CreateTransactionRequest(
-                        idUsuario,
-                        transaccion.monto,
-                        transaccion.tipo,
-                        transaccion.descripcion ?: "",
-                        transaccion.fechaTransac,
-                        transaccion.imagen
-                    )
-                    transaccionesViewModel.insertarTransaccion(transaccionEnviar)
+                    try {
+                        // Si la transaccion ya tiene un idRemoto, quiere decir que fue creada, pero hay que actualizarla
+                        if (transaccion.idRemoto != null && transaccion.idRemoto != "") {
+                            val transaccionAEnviar = Transaccion.fromEntity(transaccion)
+                            val transac = transaccionesViewModel.actualizarTransaccionSuspend(transaccion.idRemoto!!, transaccionAEnviar)
+                            // Si hubo algun error le avisamos al usuario y cancelamos la sincronización
+                            if (transac == null) {
+                                CoroutineScope(Dispatchers.Main).launch {
+                                    sweetAlert().errorAlert("Error al sincronizar la transacción", "Error", this@HomeActivity)
+                                }
+                                return@launch
+                            }
+                        } else {
+                            if(transaccion.activo == 0){
+                                continue
+                            }
+                            val transaccionEnviar = CreateTransactionRequest(
+                                usuario_id = idUsuario,
+                                monto = transaccion.monto,
+                                tipo = transaccion.tipo,
+                                descripcion = transaccion.descripcion ?: "",
+                                fecha_transac = transaccion.fechaTransac,
+                                imagen = Gson().fromJson(transaccion.imagen, object : com.google.gson.reflect.TypeToken<List<String>>() {}.type),
+                                estado = 1,
+                                activo = transaccion.activo
+                            )
+                            // Insertar transacción en el servidor usando la función suspend
+                            val transac = transaccionesViewModel.insertarTransaccionSuspend(transaccionEnviar)
+                            // Si no hubo algun error, tomamos el ID que nos regresa el servidor y lo guardamos en la base de datos local, usando el DAO
+                            if (transac != null) {
+                                DatabaseApp.database.transaccionDao().actualizarIdRemoto(transaccion.id, transac._id)
+                            }
+                        }
+                    } catch (e: Exception) {
+                        CoroutineScope(Dispatchers.Main).launch {
+                            sweetAlert().errorAlert("Error al sincronizar la transacción: ${e.message}", "Error", this@HomeActivity)
+                        }
+                    }
                 }
             }
-            //Si no hay errores, marcamos las transacciones como sincronizadas
+            // Si no hay errores, marcamos las transacciones como sincronizadas
             val ids = transaccionesNoSincronizadas.map { it.id }
-
             for (id in ids) {
                 DatabaseApp.database.transaccionDao().marcarComoSincronizadas(listOf(id))
             }
-
-            //Nuevamente, si no hay errores, actualizamos el balance del usuario
-            handleObtainBalance(idUsuario!!, findViewById(R.id.total_savings))
+            // Nuevamente, si no hay errores, actualizamos el balance del usuario
+            handleObtainBalance(userid, findViewById(R.id.total_savings))
         }
     }
 
-    private fun handleSendToHistory(){
+    private fun handleSendToHistory(userid: String = "") {
         val intent = Intent(this, HistorialActivity::class.java)
         intent.putExtra("idUser", userID)
         startActivity(intent)
+        finish()
     }
 
 
@@ -477,16 +507,27 @@ class HomeActivity : ComponentActivity() {
     private fun checkIfUserLogged() {
         CoroutineScope(Dispatchers.IO).launch {
             //Checamos si el usuario esta loggeado
-           val isUserLogged = usuariosViewModel.dataStoreManager.userLoggedIn.first()
-            if (isUserLogged) {
+           val isUserLogged = usuariosViewModel.dataStoreManager.getUserLoggedOn().first()
+            if (!isUserLogged) {
                 //Recogemos las transacciones del usuario
-                val idUsuario = intent.getStringExtra("idUser")
-                if (idUsuario != null) {
-                    handleObtainAllTransactions(idUsuario)
+                if (userID != "") {
+                    handleObtainAllTransactions(userID)
                     //una vez obtenidas las transacciones, obtenemos el balance del usuario y cargamos los elementos de la vista
-                    handleObtainBalance(idUsuario, findViewById(R.id.total_savings))
+                    handleObtainBalance(userID, findViewById(R.id.total_savings))
                     handleObtainAllLocalTransactions()
+
+                    cambiarAlias()
+                    cambiarFotoPerfil()
                 }
+            }
+            else{
+                val userid = usuariosViewModel.dataStoreManager.getUsuarioId().first()?:""
+                userID = userid
+                handleObtainBalance(userid, findViewById(R.id.total_savings))
+                handleObtainAllLocalTransactions()
+
+                cambiarAlias()
+                cambiarFotoPerfil()
             }
 
         }
@@ -494,14 +535,12 @@ class HomeActivity : ComponentActivity() {
     private fun handleSendToPerfil(){
         val intent = Intent(this, PerfilActivity::class.java)
         startActivity(intent)
+        finish()
     }
-    private fun handleSendToConfig(){
-        val intent = Intent(this, ConfigActivity::class.java)
-        startActivity(intent)
-    }
+
     private fun logOutUser(){
         //antes de cerrar sesion, le preguntaremos al usuario si esta seguro
-        sweetAlert().warningAlertWithAction("¿Estás seguro que deseas cerrar sesión?", "Cerrar sesión", this){
+        sweetAlert().warningAlertWithAction("¿Estás seguro que deseas cerrar sesión?", "Cerrar sesión", this@HomeActivity){
             //Si el usuario acepta, cerramos sesión
             handleLogOut()
         }
@@ -521,20 +560,16 @@ class HomeActivity : ComponentActivity() {
         }
     }
 
-    private fun openImageSelector() {
-        val intent = Intent(Intent.ACTION_PICK)
-        intent.type = "image/*"
-        startActivityForResult(intent, IMAGE_PICK_CODE)
+    private val imagePickerLauncher = registerForActivityResult(ActivityResultContracts.GetMultipleContents()) { uris: List<Uri> ->
+        selectedImages.clear()
+        selectedImages.addAll(uris)
+        imagesRecyclerView.adapter?.notifyDataSetChanged()
     }
 
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        super.onActivityResult(requestCode, resultCode, data)
-        if (resultCode == RESULT_OK && requestCode == IMAGE_PICK_CODE) {
-            val imageUri = data?.data
-            val imagenInput = findViewById<ImageView>(R.id.image_input)
-            imagenInput.setImageURI(imageUri)
-        }
+    private fun openImageSelector() {
+        imagePickerLauncher.launch("image/*")
     }
+
 
     companion object {
         private const val IMAGE_PICK_CODE = 1000

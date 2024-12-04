@@ -92,14 +92,26 @@
                         android:padding="10dp"
                         android:textColor="@color/verdeFuerte" />
 
-                    <ImageView
-                        android:id="@+id/image_input"
+
+                    <Button
+                        android:id="@+id/select_images_button"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="10dp"
+                        android:text="Seleccionar imágenes"
+                        android:textColor="@color/verdeFuerte"
+                        android:backgroundTint="@color/azulAqua" />
+
+
+                    <androidx.recyclerview.widget.RecyclerView
+                        android:id="@+id/images_recycler_view"
                         android:layout_width="match_parent"
                         android:layout_height="200dp"
                         android:layout_marginTop="10dp"
-                        android:scaleType="centerCrop"
                         android:background="#d3d3d3"
-                        android:contentDescription="Imagen de la transacción" />
+                        android:orientation="horizontal"
+                        android:contentDescription="Imagenes de la transacción" />
+
 
                     <EditText
                         android:id="@+id/description_input"
@@ -207,14 +219,6 @@
             android:textSize="18sp"
             android:padding="12dp"
             android:id="@+id/inicio" />
-
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Configuración"
-            android:textSize="18sp"
-            android:padding="12dp"
-            android:id="@+id/configuracion" />
 
         <TextView
             android:layout_width="match_parent"

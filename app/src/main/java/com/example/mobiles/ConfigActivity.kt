@@ -1,13 +1,11 @@
 
 package com.example.mobiles
 
-import android.app.Activity
 import UsuariosViewModelFactory
 import android.content.Intent
 import android.graphics.BitmapFactory
 import android.os.Bundle
 import android.util.Base64
-import android.widget.Button
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.activity.ComponentActivity
@@ -16,16 +14,14 @@ import androidx.core.view.GravityCompat
 import androidx.drawerlayout.widget.DrawerLayout
 import androidx.lifecycle.lifecycleScope
 import com.example.mobiles.HomeActivity
-import com.example.mobiles.LoginActivity
 import com.example.mobiles.PerfilActivity
-import com.example.mobiles.R
 import com.example.mobiles.Room.DatabaseApp
 import com.example.mobiles.utlidades.sweetAlert
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.launch
 import com.examples.mobiles.view.UsuariosViewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 class ConfigActivity :  ComponentActivity() {
@@ -76,7 +72,7 @@ class ConfigActivity :  ComponentActivity() {
             if (!drawerLayout.isDrawerOpen(GravityCompat.START)) {
                 drawerLayout.openDrawer(GravityCompat.START)
             } else {
-                drawerLayout.closeDrawer(GravityCompat.END)
+                drawerLayout.closeDrawer(GravityCompat.START)
             }
         }
         logOffButton.setOnClickListener {
@@ -107,17 +103,20 @@ class ConfigActivity :  ComponentActivity() {
     private fun handleSendToPerfil(){
         val intent = Intent(this, PerfilActivity::class.java)
         startActivity(intent)
+        finish()
     }
     private fun handleSendToHistory(){
         val intent = Intent(this, HistorialActivity::class.java)
         intent.putExtra("idUser", userID)
         startActivity(intent)
+        finish()
     }
     private fun handleSendToInicio(){
         val intent = Intent(this, HomeActivity::class.java)
         //enviamos el ID del usuario
         intent.putExtra("idUser", userID)
         startActivity(intent)
+        finish()
     }
 
     fun cambiarFotoPerfil(){

@@ -45,13 +45,22 @@ class HistorialActivity: ComponentActivity() {
 
     private var userID = ""
 
+    fun handleObtainUserID(){
+        //Obtenemos el userId de DataStore
+        lifecycleScope.launch {
+            val userId = usuariosViewModel.dataStoreManager.getUsuarioId().first()
+            if(userId != null){
+                userID = userId
+            }
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         setContentView(R.layout.activity_historial)
 
-        // Obtenemos el ID del usuario
-        userID = intent.getStringExtra("idUser").toString()
+        handleObtainUserID()
 
 
         val drawerLayout = findViewById<DrawerLayout>(R.id.drawer_layout_historial)
@@ -59,7 +68,6 @@ class HistorialActivity: ComponentActivity() {
         val inicioBoton = findViewById<TextView>(R.id.inicio)
         val logOffButton = findViewById<TextView>(R.id.logoutButton)
         val perfilBoton = findViewById<TextView>(R.id.perfil)
-        val configBoton = findViewById<TextView>(R.id.configuracion)
         perfilBoton.setOnClickListener {
             handleSendToPerfil()
         }
@@ -75,20 +83,16 @@ class HistorialActivity: ComponentActivity() {
             searchTransactions()
         }
 
-        configBoton.setOnClickListener {
-            handleSendToConfig()
-        }
 
         inicioBoton.setOnClickListener {
             handleSendToInicio()
         }
         // Abre el menú lateral al hacer clic en el botón
         menuButton.setOnClickListener {
-            if(!drawerLayout.isDrawerOpen(GravityCompat.START)){
+            if (!drawerLayout.isDrawerOpen(GravityCompat.START)) {
                 drawerLayout.openDrawer(GravityCompat.START)
-            }
-            else{
-                drawerLayout.closeDrawer(GravityCompat.END)
+            } else {
+                drawerLayout.closeDrawer(GravityCompat.START)
             }
         }
         logOffButton.setOnClickListener {
@@ -120,16 +124,7 @@ class HistorialActivity: ComponentActivity() {
                 return@launch
             }
             val transaccionesList = transacciones.map {
-                Transaccion(
-                    it.id.toString(),
-                    it.monto,
-                    it.tipo,
-                    it.imagen?:"",
-                    it.fechaTransac,
-                    it.descripcion?:"",
-                    it.usuarioId,
-                    it.estado
-                )
+                Transaccion.fromEntity(it)
             }
 
             withContext(Dispatchers.Main){
@@ -145,11 +140,7 @@ class HistorialActivity: ComponentActivity() {
     private fun handleSendToPerfil(){
         val intent = Intent(this, PerfilActivity::class.java)
         startActivity(intent)
-    }
-
-    private fun handleSendToConfig(){
-        val intent = Intent(this, ConfigActivity::class.java)
-        startActivity(intent)
+        finish()
     }
 
     fun setupDateInputFormatter(editText: EditText) {
@@ -233,6 +224,7 @@ class HistorialActivity: ComponentActivity() {
         //enviamos el ID del usuario
         intent.putExtra("idUser", userID)
         startActivity(intent)
+        finish()
     }
     private fun logOutUser(){
         //antes de cerrar sesion, le preguntaremos al usuario si esta seguro
@@ -256,26 +248,16 @@ class HistorialActivity: ComponentActivity() {
     }
     private fun handleObtainAllLocalTransactions(){
         lifecycleScope.launch(Dispatchers.IO) {
-            val userId = intent.getStringExtra("idUser")
-            if (userId.isNullOrEmpty()) {
+            if (userID == "") {
                 // Manejar el caso en que el idUser sea nulo o vacío
                 return@launch
             }
-            val transacciones = DatabaseApp.database.transaccionDao().obtenerTransaccionesPorUsuario(userId)
+            val transacciones = DatabaseApp.database.transaccionDao().obtenerTransaccionesPorUsuario(userID)
             if(transacciones.isEmpty()){
                 return@launch
             }
             val transaccionesList = transacciones.map {
-                Transaccion(
-                    it.id.toString(),
-                    it.monto,
-                    it.tipo,
-                    it.imagen?:"",
-                    it.fechaTransac,
-                    it.descripcion?:"",
-                    it.usuarioId,
-                    it.estado
-                )
+                Transaccion.fromEntity(it)
             }
 
             withContext(Dispatchers.Main){

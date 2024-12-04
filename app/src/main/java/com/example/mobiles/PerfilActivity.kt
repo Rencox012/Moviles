@@ -78,11 +78,10 @@ class PerfilActivity: ComponentActivity() {
         val menuButton = findViewById<ImageView>(R.id.menuButton)
         // Abre el menú lateral al hacer clic en el botón
         menuButton.setOnClickListener {
-            if(!drawerLayout.isDrawerOpen(GravityCompat.START)){
+            if (!drawerLayout.isDrawerOpen(GravityCompat.START)) {
                 drawerLayout.openDrawer(GravityCompat.START)
-            }
-            else{
-                drawerLayout.closeDrawer(GravityCompat.END)
+            } else {
+                drawerLayout.closeDrawer(GravityCompat.START)
             }
         }
         val inicioBoton = findViewById<TextView>(R.id.inicio)
@@ -92,10 +91,6 @@ class PerfilActivity: ComponentActivity() {
         val historialBoton = findViewById<TextView>(R.id.historial)
         historialBoton.setOnClickListener {
             handleSendToHistory()
-        }
-        val configBoton = findViewById<TextView>(R.id.configuracion)
-        configBoton.setOnClickListener {
-            handleSendToConfig()
         }
         val logOffButton = findViewById<TextView>(R.id.logoutButton)
         logOffButton.setOnClickListener {
@@ -240,10 +235,6 @@ class PerfilActivity: ComponentActivity() {
         startActivity(intent)
     }
 
-    private fun handleSendToConfig(){
-        val intent = Intent(this, ConfigActivity::class.java)
-        startActivity(intent)
-    }
 
     private fun handleSendToInicio(){
         val intent = Intent(this, HomeActivity::class.java)

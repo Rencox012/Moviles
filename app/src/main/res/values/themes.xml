@@ -7,7 +7,7 @@
 
     <style name="Theme.SpendLess" parent="Base.Theme.SpendLess" />
 
-    <style name="Theme.Mobiles" parent="android:Theme.Material.Light.NoActionBar" />
+    <style name="Theme.Mobiles" parent="Theme.AppCompat.Light.DarkActionBar" />
     <!-- Base application theme -->
     <style name="Theme.AppTheme" parent="Theme.AppCompat.Light.DarkActionBar">
         <!-- Customize your theme here. -->

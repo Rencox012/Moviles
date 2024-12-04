@@ -23,7 +23,7 @@ class DataStoreManager(private val context: Context) {
     private val USER_DIRECCION = stringPreferencesKey("user_direccion")
     private val USER_FECHA_CREACION = stringPreferencesKey("user_fecha_creacion")
     //Variable para saber si el usuario ya inicio sesion antes, se usa para recuperar los datos de las transacciones solo una vez.
-    val userLoggedIn: Flow<Boolean> = context.dataStore.data.map { prefs -> prefs[USER_ID] != null }
+    val userLoggedIn: Flow<String?> = context.dataStore.data.map { prefs -> prefs[USER_LOGGED_IN]}
     val userId: Flow<String?> = context.dataStore.data.map { prefs -> prefs[USER_ID] }
     val userName: Flow<String?> = context.dataStore.data.map { prefs -> prefs[USER_NAME] }
     val userEmail: Flow<String?> = context.dataStore.data.map { prefs -> prefs[USER_EMAIL] }
@@ -87,8 +87,17 @@ class DataStoreManager(private val context: Context) {
         }
     }
 
-    fun getUsuarioId(): String? {
-        return context.dataStore.data.map { prefs -> prefs[USER_ID] }.toString()
+    fun getUserLoggedOn(): Flow<Boolean> {
+        return context.dataStore.data.map { prefs -> prefs[USER_LOGGED_IN] == "true" }
+    }
+    suspend fun setUserLoggedOn(logged: Boolean) {
+        context.dataStore.edit { prefs ->
+            prefs[USER_LOGGED_IN] = logged.toString()
+        }
+    }
+
+    fun getUsuarioId(): Flow<String?> {
+        return userId;
     }
     fun getUsuarioEmail(): String? {
         return context.dataStore.data.map { prefs -> prefs[USER_EMAIL] }.toString()

@@ -47,6 +47,7 @@ class PerfilActivity: ComponentActivity() {
     }
 
     private var userID = ""
+    private val sweetalertManager = sweetAlert()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -55,20 +56,22 @@ class PerfilActivity: ComponentActivity() {
 
         usuariosViewModel.usuario.observe(this, Observer { usuario ->
             if (usuario != null) {
-                sweetAlert().successAlert("Usuario actualizado correctamente", "Éxito", this)
+                sweetalertManager.dismissLoadingAlert()
+                sweetalertManager.successAlert("Usuario actualizado correctamente", "Éxito", this)
                 //Ahora, actualizamos la informacion del usuario en el DataStore
                 CoroutineScope(Dispatchers.IO).launch {
                     usuariosViewModel.dataStoreManager.saveUserObject(usuario)
                 }
             }
             else{
-                sweetAlert().errorAlert("Error al actualizar el usuario", "Error", this)
+                sweetalertManager.dismissLoadingAlert()
+                sweetalertManager.errorAlert("Error al actualizar el usuario", "Error", this)
             }
         })
 
         usuariosViewModel.error.observe(this, Observer { error ->
             if (error != null) {
-                sweetAlert().errorAlert(error, "Error", this)
+                sweetalertManager.errorAlert(error, "Error", this)
             }
         })
 
@@ -171,9 +174,10 @@ class PerfilActivity: ComponentActivity() {
 
         //El usuario no se puede actualizar sin conexión a internet
         if(!isNetworkAvailable(this)){
-            sweetAlert().errorAlert("No hay conexión a internet", "Error", this)
+            sweetalertManager.errorAlert("No hay conexión a internet", "Error", this)
             return
         }
+        sweetalertManager.loadingAlert("Actualizando usuario", "Cargando", this)
 
         //Empezamos obteniendo los valores de los campos
         val nombreUsuario = findViewById<EditText>(R.id.nameInput).text.toString()
@@ -197,7 +201,8 @@ class PerfilActivity: ComponentActivity() {
         if(contrasenaUsuario != "" && confirmaContrasenaUsuario != ""){
             //Si las contraseñas no coinciden, mostramos un mensaje de error
             if(contrasenaUsuario != confirmaContrasenaUsuario){
-                sweetAlert().errorAlert("Las contraseñas no coinciden", "Error", this)
+                sweetalertManager.dismissLoadingAlert()
+                sweetalertManager.errorAlert("Las contraseñas no coinciden", "Error", this)
                 return
             }
             //Creamos el objeto de request con la contraseña
@@ -244,7 +249,7 @@ class PerfilActivity: ComponentActivity() {
     }
     private fun logOutUser(){
         //antes de cerrar sesion, le preguntaremos al usuario si esta seguro
-        sweetAlert().warningAlertWithAction("¿Estás seguro que deseas cerrar sesión?", "Cerrar sesión", this){
+        sweetalertManager.warningAlertWithAction("¿Estás seguro que deseas cerrar sesión?", "Cerrar sesión", this){
             //Si el usuario acepta, cerramos sesión
             handleLogOut()
         }

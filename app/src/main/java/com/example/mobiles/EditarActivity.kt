@@ -43,6 +43,7 @@ class EditarActivity : ComponentActivity() {
         UsuariosViewModelFactory(applicationContext) // Pasamos el contexto de la aplicación
         // ;
     }
+    private val sweetalertManager = sweetAlert()
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_edit_transac)
@@ -65,7 +66,7 @@ class EditarActivity : ComponentActivity() {
                     if (s.toString().isNotEmpty()) {
                         if (s.toString().toDouble() < 0) {
                             monto_input.text = null
-                            sweetAlert().errorAlert("No se permiten montos negativos", "Error", this@EditarActivity)
+                            sweetalertManager.errorAlert("No se permiten montos negativos", "Error", this@EditarActivity)
                         }
                     }
                 }
@@ -89,15 +90,15 @@ class EditarActivity : ComponentActivity() {
             val descripcion = findViewById<TextView>(R.id.description_input).text.toString()
 
             if(selectedImages.isEmpty()){
-                sweetAlert().warningAlert("Debes seleccionar al menos una imagen", "Error", this)
+                sweetalertManager.warningAlert("Debes seleccionar al menos una imagen", "Error", this)
                 return@setOnClickListener
             }
             if(descripcion.isEmpty()){
-                sweetAlert().warningAlert("Debes escribir una descripción", "Error", this)
+                sweetalertManager.warningAlert("Debes escribir una descripción", "Error", this)
                 return@setOnClickListener
             }
             if(monto <= 0){
-                sweetAlert().warningAlert("El monto debe ser mayor a 0", "Error", this)
+                sweetalertManager.warningAlert("El monto debe ser mayor a 0", "Error", this)
                 return@setOnClickListener
             }
 
@@ -108,15 +109,15 @@ class EditarActivity : ComponentActivity() {
             val descripcion = findViewById<TextView>(R.id.description_input).text.toString()
 
             if(selectedImages.isEmpty()){
-                sweetAlert().warningAlert("Debes seleccionar al menos una imagen", "Error", this)
+                sweetalertManager.warningAlert("Debes seleccionar al menos una imagen", "Error", this)
                 return@setOnClickListener
             }
             if(descripcion.isEmpty()){
-                sweetAlert().warningAlert("Debes escribir una descripción", "Error", this)
+                sweetalertManager.warningAlert("Debes escribir una descripción", "Error", this)
                 return@setOnClickListener
             }
             if(monto <= 0){
-                sweetAlert().warningAlert("El monto debe ser mayor a 0", "Error", this)
+                sweetalertManager.warningAlert("El monto debe ser mayor a 0", "Error", this)
                 return@setOnClickListener
             }
 
@@ -256,7 +257,7 @@ class EditarActivity : ComponentActivity() {
     //region Funciones para cerrar sesión
     private fun logOutUser(){
         //antes de cerrar sesion, le preguntaremos al usuario si esta seguro
-        sweetAlert().warningAlertWithAction("¿Estás seguro que deseas cerrar sesión?", "Cerrar sesión", this){
+        sweetalertManager.warningAlertWithAction("¿Estás seguro que deseas cerrar sesión?", "Cerrar sesión", this){
             //Si el usuario acepta, cerramos sesión
             handleLogOut()
         }
@@ -300,26 +301,29 @@ class EditarActivity : ComponentActivity() {
         }
     }
     private fun eliminarTransaccion() {
-        sweetAlert().warningAlertWithAction("¿Estás seguro que deseas eliminar esta transacción?", "Eliminar transacción", this) {
+        sweetalertManager.warningAlertWithAction("¿Estás seguro que deseas eliminar esta transacción?", "Eliminar transacción", this) {
             // Si el usuario acepta, eliminamos la transacción
             handleEliminar()
         }
     }
 
     private fun handleEliminar(){
+        sweetalertManager.loadingAlert("Eliminando transacción", "Espere por favor", this)
         //Funcion que se enviara al sweetAlert
         CoroutineScope(Dispatchers.IO).launch {
             //Usamos el DAO para borrar logicamente la transaccion
             DatabaseApp.database.transaccionDao().borrarTransaccion(transaccionID.toInt())
             //alertamos al usuario que la transaccion fue eliminada, y lo redirigimos al historial
             withContext(Dispatchers.Main){
-                sweetAlert().successAlert("Transacción eliminada", "Transacción eliminada", this@EditarActivity)
+                sweetalertManager.dismissLoadingAlert()
+                sweetalertManager.successAlert("Transacción eliminada", "Transacción eliminada", this@EditarActivity)
                 handleSendToInicio()
             }
         }
 
     }
     private fun modificarTransaccion(monto: Double, tipo: String, descripcion: String, imagenes: List<String>) {
+        sweetalertManager.loadingAlert("Modificando transacción", "Espere por favor", this)
         //usamos el dao para actualizar la transaccion
         CoroutineScope(Dispatchers.IO).launch {
             DatabaseApp.database.transaccionDao().actualizarTransaccion(
@@ -331,7 +335,8 @@ class EditarActivity : ComponentActivity() {
             )
             //alertamos al usuario que la transaccion fue modificada
             withContext(Dispatchers.Main){
-                sweetAlert().successAlert("Transacción modificada", "Transacción modificada", this@EditarActivity)
+                sweetalertManager.dismissLoadingAlert()
+                sweetalertManager.successAlert("Transacción modificada", "Transacción modificada", this@EditarActivity)
             }
         }
 

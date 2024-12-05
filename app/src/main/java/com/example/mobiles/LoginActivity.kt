@@ -25,6 +25,7 @@ class LoginActivity : ComponentActivity() {
     private val usuariosViewModel: UsuariosViewModel by viewModels {
         UsuariosViewModelFactory(applicationContext) // Pasamos el contexto de la aplicación
     }
+    private var sweetalertManager = sweetAlert()
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -43,19 +44,22 @@ class LoginActivity : ComponentActivity() {
         // Observa los cambios en el usuario registrado
         usuariosViewModel.usuario.observe(this, Observer { usuario ->
             if (usuario != null) {
-                sweetAlert().successAlert("Bienvenido ${usuario.nombre}", "Inicio de sesión exitoso", this)
+                sweetalertManager.dismissLoadingAlert()
+                sweetalertManager.successAlert("Bienvenido ${usuario.nombre}", "Inicio de sesión exitoso", this)
                 //enviamos al home
                 handleSendHome(usuario._id)
             }
             else{
-                sweetAlert().errorAlert("Error al iniciar sesión", "Error", this)
+                sweetalertManager.dismissLoadingAlert()
+                sweetalertManager.errorAlert("Error al iniciar sesión", "Error", this)
             }
         })
 
         // Observa los errores
         usuariosViewModel.error.observe(this, Observer { error ->
             if (error != null) {
-               sweetAlert().errorAlert(error, "Error", this)
+            sweetalertManager.dismissLoadingAlert()
+               sweetalertManager.errorAlert(error, "Error", this)
             }
         })
 
@@ -73,13 +77,15 @@ class LoginActivity : ComponentActivity() {
     }
     private fun handleLogin(email: String, password: String) {
         if (email.isEmpty() || password.isEmpty()) {
-            sweetAlert().errorAlert("Por favor, llena todos los campos", "Error", this)
+            sweetalertManager.errorAlert("Por favor, llena todos los campos", "Error", this)
             return
         }
         if(!isNetworkAvailable(this)){
-            sweetAlert().errorAlert("No hay conexión a internet", "Error", this)
+            sweetalertManager.errorAlert("No hay conexión a internet", "Error", this)
             return
         }
+
+        sweetalertManager.loadingAlert("Iniciando sesión", "Cargando", this)
 
 
         // Aquí llamaremos al ViewModel para realizar el inicio de sesión

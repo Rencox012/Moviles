@@ -22,6 +22,7 @@ class RegisterActivity : ComponentActivity() {
     private val usuariosViewModel: UsuariosViewModel by viewModels {
         UsuariosViewModelFactory(applicationContext) // Pasamos el contexto de la aplicación
     }
+    private val sweetalertManager = sweetAlert()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -42,7 +43,8 @@ class RegisterActivity : ComponentActivity() {
         // Observa los cambios en el usuario registrado
         usuariosViewModel.usuario.observe(this, Observer { usuario ->
             if (usuario != null) {
-                sweetAlert().successAlert("Bienvenido ${usuario.nombre}", "Registro exitoso", this)
+                sweetalertManager.dismissLoadingAlert()
+                sweetalertManager.successAlert("Bienvenido ${usuario.nombre}", "Registro exitoso", this)
                 // Redirige al login
                 handleLogin()
             }
@@ -51,7 +53,8 @@ class RegisterActivity : ComponentActivity() {
         // Observa los errores
         usuariosViewModel.error.observe(this, Observer { error ->
             if (error != null) {
-                sweetAlert().errorAlert(error, "Error", this)
+                sweetalertManager.dismissLoadingAlert()
+                sweetalertManager.errorAlert(error, "Error", this)
             }
         })
 
@@ -63,6 +66,18 @@ class RegisterActivity : ComponentActivity() {
             val alias = alias_input.text.toString()
             val telefono = telefono_input.text.toString()
             val direccion = direccion_input.text.toString()
+
+
+            if (username.isEmpty() || email.isEmpty() || password.isEmpty() || validationPassword.isEmpty() || alias.isEmpty() || telefono.isEmpty() || direccion.isEmpty()) {
+                sweetalertManager.errorAlert("Por favor, llene todos los campos", "Error", this)
+                return@setOnClickListener
+            }
+            if(password != validationPassword){
+                sweetalertManager.errorAlert("Las contraseñas no coinciden", "Error", this)
+                return@setOnClickListener
+            }
+
+            sweetalertManager.loadingAlert("Registrando usuario", "Espere por favor", this)
 
             handleRegistro(username, email, password, validationPassword, alias, telefono, direccion)
         }
@@ -81,16 +96,19 @@ class RegisterActivity : ComponentActivity() {
 
         //Si no hay conexión a internet, se muestra un mensaje de error.
         if (!isNetworkAvailable(this)) {
-            sweetAlert().errorAlert("No hay conexión a internet", "Error", this)
+            sweetalertManager.dismissLoadingAlert()
+            sweetalertManager.errorAlert("No hay conexión a internet", "Error", this)
             return
         }
         if (username.isEmpty() || email.isEmpty() || password.isEmpty() || validationPassword.isEmpty() || alias.isEmpty() || telefono.isEmpty() || direccion.isEmpty()) {
-            sweetAlert().errorAlert("Por favor, llene todos los campos", "Error", this)
+            sweetalertManager.dismissLoadingAlert()
+            sweetalertManager.errorAlert("Por favor, llene todos los campos", "Error", this)
             return
         }
 
         if (password != validationPassword) {
-            sweetAlert().errorAlert("Las contraseñas no coinciden", "Error", this)
+            sweetalertManager.dismissLoadingAlert()
+            sweetalertManager.errorAlert("Las contraseñas no coinciden", "Error", this)
             return
         }
 

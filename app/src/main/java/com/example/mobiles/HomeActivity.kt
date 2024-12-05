@@ -59,6 +59,7 @@ class HomeActivity : ComponentActivity() {
 
     private lateinit var imagesRecyclerView: RecyclerView
     private val selectedImages = mutableListOf<Uri>()
+    private val sweetalertManager = sweetAlert()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -131,7 +132,7 @@ class HomeActivity : ComponentActivity() {
                     if (s.toString().isNotEmpty()) {
                         if (s.toString().toDouble() < 0) {
                             cantidadInput.text = null
-                            sweetAlert().errorAlert("No se permiten montos negativos", "Error", this@HomeActivity)
+                            sweetalertManager.errorAlert("No se permiten montos negativos", "Error", this@HomeActivity)
                         }
                     }
                 }
@@ -186,31 +187,31 @@ class HomeActivity : ComponentActivity() {
 
         agregarIngresoBoton.setOnClickListener {
             if(cantidadInput.text.toString().isEmpty()){
-                sweetAlert().errorAlert("El monto no puede estar vacío", "Error", this)
+                sweetalertManager.errorAlert("El monto no puede estar vacío", "Error", this)
                 return@setOnClickListener
             }
             if(descripcionInput.text.toString().isEmpty()){
-                sweetAlert().errorAlert("La descripción no puede estar vacía", "Error", this)
+                sweetalertManager.errorAlert("La descripción no puede estar vacía", "Error", this)
                 return@setOnClickListener
             }
             //There must be at least one image selected
             if(selectedImages.isEmpty()){
-                sweetAlert().errorAlert("Debe seleccionar al menos una imagen", "Error", this)
+                sweetalertManager.errorAlert("Debe seleccionar al menos una imagen", "Error", this)
                 return@setOnClickListener
             }
             val cantidad = cantidadInput.text.toString().toDouble()
             val descripcion = descripcionInput.text.toString()
             if(cantidad <= 0){
-                sweetAlert().errorAlert("El monto debe ser mayor a 0", "Error", this)
+                sweetalertManager.errorAlert("El monto debe ser mayor a 0", "Error", this)
                 return@setOnClickListener
             }
             if(descripcion.isEmpty()){
-                sweetAlert().errorAlert("La descripción no puede estar vacía", "Error", this)
+                sweetalertManager.errorAlert("La descripción no puede estar vacía", "Error", this)
                 return@setOnClickListener
             }
             //There has to be at least one image selected
             if(selectedImages.isEmpty()){
-                sweetAlert().errorAlert("Debe seleccionar al menos una imagen", "Error", this)
+                sweetalertManager.errorAlert("Debe seleccionar al menos una imagen", "Error", this)
                 return@setOnClickListener
             }
             handleAddTransaction(cantidad, descripcion, "ingreso", selectedImages)
@@ -218,31 +219,31 @@ class HomeActivity : ComponentActivity() {
 
         agregarGastoBoton.setOnClickListener {
             if(cantidadInput.text.toString().isEmpty()){
-                sweetAlert().errorAlert("El monto no puede estar vacío", "Error", this)
+                sweetalertManager.errorAlert("El monto no puede estar vacío", "Error", this)
                 return@setOnClickListener
             }
             if(descripcionInput.text.toString().isEmpty()){
-                sweetAlert().errorAlert("La descripción no puede estar vacía", "Error", this)
+                sweetalertManager.errorAlert("La descripción no puede estar vacía", "Error", this)
                 return@setOnClickListener
             }
             //There has to be at least one image selected
             if(selectedImages.isEmpty()){
-                sweetAlert().errorAlert("Debe seleccionar al menos una imagen", "Error", this)
+                sweetalertManager.errorAlert("Debe seleccionar al menos una imagen", "Error", this)
                 return@setOnClickListener
             }
             val cantidad = cantidadInput.text.toString().toDouble()
             val descripcion = descripcionInput.text.toString()
             if(cantidad <= 0){
-                sweetAlert().errorAlert("El monto debe ser mayor a 0", "Error", this)
+                sweetalertManager.errorAlert("El monto debe ser mayor a 0", "Error", this)
                 return@setOnClickListener
             }
             if(descripcion.isEmpty()){
-                sweetAlert().errorAlert("La descripción no puede estar vacía", "Error", this)
+                sweetalertManager.errorAlert("La descripción no puede estar vacía", "Error", this)
                 return@setOnClickListener
             }
             //There has to be at least one image selected
             if(selectedImages.isEmpty()){
-                sweetAlert().errorAlert("Debe seleccionar al menos una imagen", "Error", this)
+                sweetalertManager.errorAlert("Debe seleccionar al menos una imagen", "Error", this)
                 return@setOnClickListener
             }
             handleAddTransaction(cantidad, descripcion, "gasto", selectedImages)
@@ -292,7 +293,7 @@ class HomeActivity : ComponentActivity() {
             val resultadoGastos = DatabaseApp.database.transaccionDao().obtenerTotalGastos(idUsuario)
 
             if(resultadoIngresos == null || resultadoGastos == null){
-                sweetAlert().errorAlert("Error al obtener el balance", "Error", this@HomeActivity)
+                sweetalertManager.errorAlert("Error al obtener el balance", "Error", this@HomeActivity)
                 return@launch
             }
             val balance = resultadoIngresos - resultadoGastos
@@ -302,6 +303,8 @@ class HomeActivity : ComponentActivity() {
 
 
     private fun handleAddTransaction(ammount: Double, description: String, type: String, imagen: List<Uri>) {
+        sweetalertManager.loadingAlert("Guardando transacción", "Guardando", this)
+
         lifecycleScope.launch(Dispatchers.IO) {
             val userid = usuariosViewModel.dataStoreManager.getUsuarioId().first()?:""
             if (userid != "") {
@@ -341,7 +344,8 @@ class HomeActivity : ComponentActivity() {
                     //Actualizamos el balance del usuario
                     handleObtainBalance(userid, findViewById(R.id.total_savings))
                     CoroutineScope(Dispatchers.Main).launch {
-                        sweetAlert().successAlert("Transacción guardada", "Éxito", this@HomeActivity)
+                        sweetalertManager.dismissLoadingAlert()
+                        sweetalertManager.successAlert("Transacción guardada", "Éxito", this@HomeActivity)
                     }
                     //actualizamos la lista de transacciones
                     handleObtainAllLocalTransactions()
@@ -353,7 +357,8 @@ class HomeActivity : ComponentActivity() {
                 }
                 else{
                     CoroutineScope(Dispatchers.Main).launch {
-                        sweetAlert().errorAlert("Error al guardar la transacción", "Error", this@HomeActivity)
+                        sweetalertManager.dismissLoadingAlert()
+                        sweetalertManager.errorAlert("Error al guardar la transacción", "Error", this@HomeActivity)
                     }
                 }
             }
@@ -419,7 +424,7 @@ class HomeActivity : ComponentActivity() {
 
     private fun sincronizarTransacciones() {
         if (!isNetworkAvailable(this)) {
-            sweetAlert().warningAlert("Las transacciones solo se guardaran locamente hasta que haya conexion.", "No hay conexion a internet", this)
+            sweetalertManager.warningAlert("Las transacciones solo se guardaran locamente hasta que haya conexion.", "No hay conexion a internet", this)
             return
         }
         // Empezamos por obtener las transacciones no sincronizadas
@@ -443,7 +448,7 @@ class HomeActivity : ComponentActivity() {
                             // Si hubo algun error le avisamos al usuario y cancelamos la sincronización
                             if (transac == null) {
                                 CoroutineScope(Dispatchers.Main).launch {
-                                    sweetAlert().errorAlert("Error al sincronizar la transacción", "Error", this@HomeActivity)
+                                    sweetalertManager.errorAlert("Error al sincronizar la transacción", "Error", this@HomeActivity)
                                 }
                                 return@launch
                             }
@@ -470,7 +475,7 @@ class HomeActivity : ComponentActivity() {
                         }
                     } catch (e: Exception) {
                         CoroutineScope(Dispatchers.Main).launch {
-                            sweetAlert().errorAlert("Error al sincronizar la transacción: ${e.message}", "Error", this@HomeActivity)
+                            sweetalertManager.errorAlert("Error al sincronizar la transacción: ${e.message}", "Error", this@HomeActivity)
                         }
                     }
                 }
@@ -540,7 +545,7 @@ class HomeActivity : ComponentActivity() {
 
     private fun logOutUser(){
         //antes de cerrar sesion, le preguntaremos al usuario si esta seguro
-        sweetAlert().warningAlertWithAction("¿Estás seguro que deseas cerrar sesión?", "Cerrar sesión", this@HomeActivity){
+        sweetalertManager.warningAlertWithAction("¿Estás seguro que deseas cerrar sesión?", "Cerrar sesión", this@HomeActivity){
             //Si el usuario acepta, cerramos sesión
             handleLogOut()
         }

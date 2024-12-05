@@ -32,6 +32,10 @@
             android:id="@+id/logoIcon"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:maxWidth="200dp"
+            android:maxHeight="200dp"
+            android:adjustViewBounds="true"
+            android:scaleType="centerInside"
             tools:srcCompat="@tools:sample/avatars"/>
         <Button
             android:id="@+id/seleccionarFoto"

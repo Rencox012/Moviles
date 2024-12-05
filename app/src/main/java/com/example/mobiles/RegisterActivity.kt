@@ -15,6 +15,7 @@ import androidx.lifecycle.Observer
 import com.example.mobiles.classes.RegisterRequest
 import com.example.mobiles.utlidades.sweetAlert
 import com.examples.mobiles.view.UsuariosViewModel
+import java.util.regex.Pattern
 
 class RegisterActivity : ComponentActivity() {
 
@@ -77,6 +78,10 @@ class RegisterActivity : ComponentActivity() {
                 return@setOnClickListener
             }
 
+            if (!verificarContra(password)) {
+                return@setOnClickListener
+            }
+
             sweetalertManager.loadingAlert("Registrando usuario", "Espere por favor", this)
 
             handleRegistro(username, email, password, validationPassword, alias, telefono, direccion)
@@ -88,6 +93,17 @@ class RegisterActivity : ComponentActivity() {
 
 
 
+    }
+
+    private fun verificarContra(password: String) : Boolean {
+        //Checamos que la contraseña tenga minimo 8 caracteres, una minuscula, una mayuscula, un numero y un caracter especial
+        val pattern = Pattern.compile("^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*[@#\$%^&+=])(?=\\S+\$).{8,}\$")
+        val matcher = pattern.matcher(password)
+        if (!matcher.matches()) {
+            sweetalertManager.errorAlert("La contraseña debe tener al menos 8 caracteres, una mayúscula, una minúscula, un número y un caracter especial", "Error", this)
+            return false
+        }
+        return true
     }
 
     private fun handleRegistro(username: String, email: String, password: String, validationPassword: String

@@ -4,6 +4,7 @@ import TransaccionesModelFactory
 import UsuariosViewModelFactory
 import android.content.Context
 import android.content.Intent
+import android.database.CursorWindow
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.drawable.BitmapDrawable
@@ -42,7 +43,9 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.ByteArrayOutputStream
+import java.lang.reflect.Field
 import java.util.Calendar
+
 
 class HomeActivity : ComponentActivity() {
 
@@ -63,10 +66,24 @@ class HomeActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        try {
+            val field: Field = CursorWindow::class.java.getDeclaredField("sCursorWindowSize")
+            field.isAccessible = true
+            field.set(null, 100 * 1024 * 1024) //the 100MB is the new size
+        } catch (e: java.lang.Exception) {
+            e.printStackTrace()
+        }
+
 
 
 
         setContentView(R.layout.activity_home)
+
+
+
+
+
+
         // Obtén referencias a los componentes
         val drawerLayout = findViewById<DrawerLayout>(R.id.drawer_layout)
         val menuButton = findViewById<ImageView>(R.id.menuButton)
@@ -184,7 +201,7 @@ class HomeActivity : ComponentActivity() {
             }
         }
 
-
+        //region Listener Botones
         agregarIngresoBoton.setOnClickListener {
             if(cantidadInput.text.toString().isEmpty()){
                 sweetalertManager.errorAlert("El monto no puede estar vacío", "Error", this)
@@ -248,7 +265,7 @@ class HomeActivity : ComponentActivity() {
             }
             handleAddTransaction(cantidad, descripcion, "gasto", selectedImages)
         }
-
+        //endregion
 
 
     }
@@ -320,7 +337,9 @@ class HomeActivity : ComponentActivity() {
                 // Convert from uri to base64 string
                 val imagenesString = imagen.map {
                     val inputStream = contentResolver.openInputStream(it)
-                    val byteArray = inputStream?.readBytes()
+                    var byteArray = inputStream?.readBytes()
+                    //Compress the image to 500KB
+                    byteArray = compressImages(byteArray!!)
                     val base64 = Base64.encodeToString(byteArray, Base64.DEFAULT)
                     base64
                 }
@@ -364,6 +383,21 @@ class HomeActivity : ComponentActivity() {
             }
         }
 
+    }
+    private fun compressImages (byteArray: ByteArray): ByteArray {
+        //We make sure the images are not bigger than 500KB
+        val maxSize = 8000
+        val quality = 100
+        var compressedImage = byteArray
+        while (compressedImage.size > maxSize) {
+            val stream = ByteArrayOutputStream()
+            val options = BitmapFactory.Options()
+            options.inSampleSize = 2
+            val bitmap = BitmapFactory.decodeByteArray(compressedImage, 0, compressedImage.size, options)
+            bitmap.compress(Bitmap.CompressFormat.JPEG, quality, stream)
+            compressedImage = stream.toByteArray()
+        }
+        return compressedImage
     }
 
     private fun updateTextView(textView: TextView, text: String) {
@@ -424,14 +458,23 @@ class HomeActivity : ComponentActivity() {
 
     private fun sincronizarTransacciones() {
         if (!isNetworkAvailable(this)) {
-            sweetalertManager.warningAlert("Las transacciones solo se guardaran locamente hasta que haya conexion.", "No hay conexion a internet", this)
-            return
+            //lo enviamos al main thread para que pueda mostrar el mensaje
+            CoroutineScope(Dispatchers.Main).launch {
+                sweetalertManager.errorAlert("No hay conexión a internet", "Error", this@HomeActivity)
+                return@launch
+            }
         }
         // Empezamos por obtener las transacciones no sincronizadas
         lifecycleScope.launch(Dispatchers.IO) {
             val userid = usuariosViewModel.dataStoreManager.getUsuarioId().first() ?: ""
             userID = userid
-            val transaccionesNoSincronizadas = DatabaseApp.database.transaccionDao().obtenerTransaccionesNoSincronizadas()
+            var transaccionesNoSincronizadas = emptyList<TransaccionEntity>()
+                try{
+                    transaccionesNoSincronizadas = DatabaseApp.database.transaccionDao().obtenerTransaccionesNoSincronizadas()
+            }
+            catch (e: Exception){
+                sweetalertManager.errorAlert("Error al obtener las transacciones no sincronizadas", "Error", this@HomeActivity)
+            }
             if (transaccionesNoSincronizadas.isEmpty()) {
                 return@launch
             }
@@ -474,9 +517,8 @@ class HomeActivity : ComponentActivity() {
                             }
                         }
                     } catch (e: Exception) {
-                        CoroutineScope(Dispatchers.Main).launch {
-                            sweetalertManager.errorAlert("Error al sincronizar la transacción: ${e.message}", "Error", this@HomeActivity)
-                        }
+
+                        return@launch
                     }
                 }
             }
@@ -570,6 +612,9 @@ class HomeActivity : ComponentActivity() {
         selectedImages.addAll(uris)
         imagesRecyclerView.adapter?.notifyDataSetChanged()
     }
+
+
+
 
     private fun openImageSelector() {
         imagePickerLauncher.launch("image/*")

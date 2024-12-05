@@ -22,7 +22,7 @@ class sweetAlert {
 
         Handler(Looper.getMainLooper()).postDelayed({
             alert.dismissWithAnimation()
-        }, 2000)
+        }, 2500)
 
     }
 
@@ -62,7 +62,7 @@ class sweetAlert {
 
         Handler(Looper.getMainLooper()).postDelayed({
             dialog.dismissWithAnimation()
-        }, 2000)
+        }, 2500)
     }
 
     //Metodo que permite crear una alerta de advertencia y asignarle una accion al boton de aceptar.

@@ -2,6 +2,7 @@ package com.example.mobiles
 
 import UsuariosViewModelFactory
 import android.content.Intent
+import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Bundle
@@ -29,6 +30,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.io.ByteArrayOutputStream
 
 class EditarActivity : ComponentActivity() {
 
@@ -186,14 +188,30 @@ class EditarActivity : ComponentActivity() {
         selectedImages.clear()
         //transformamos las uris a base64
         val base64Images = uris.map { uri ->
-            val inputStream = contentResolver.openInputStream(uri)
-            val byteArray = inputStream?.readBytes()
-            byteArray?.let { Base64.encodeToString(it, Base64.DEFAULT) } ?: ""
+          //Reduciremos la imagen para que no pese mas de 500KB
+            var byteArray = contentResolver.openInputStream(uri)?.readBytes()
+            byteArray = compressImages(byteArray?: byteArrayOf())
+            Base64.encodeToString(byteArray, Base64.DEFAULT)
         }
         selectedImages.addAll(base64Images)
         imagesAdapter.notifyDataSetChanged()
     }
 
+    private fun compressImages (byteArray: ByteArray): ByteArray {
+        //We make sure the images are not bigger than 500KB
+        val maxSize = 8000
+        val quality = 100
+        var compressedImage = byteArray
+        while (compressedImage.size > maxSize) {
+            val stream = ByteArrayOutputStream()
+            val options = BitmapFactory.Options()
+            options.inSampleSize = 2
+            val bitmap = BitmapFactory.decodeByteArray(compressedImage, 0, compressedImage.size, options)
+            bitmap.compress(Bitmap.CompressFormat.JPEG, quality, stream)
+            compressedImage = stream.toByteArray()
+        }
+        return compressedImage
+    }
     private fun openImageSelector() {
         imagePickerLauncher.launch("image/*")
     }
@@ -337,6 +355,7 @@ class EditarActivity : ComponentActivity() {
             withContext(Dispatchers.Main){
                 sweetalertManager.dismissLoadingAlert()
                 sweetalertManager.successAlert("Transacción modificada", "Transacción modificada", this@EditarActivity)
+                handleSendToInicio()
             }
         }
 

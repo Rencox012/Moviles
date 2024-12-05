@@ -9,7 +9,9 @@ import android.graphics.BitmapFactory
 import android.graphics.drawable.BitmapDrawable
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
+import android.net.Uri
 import android.os.Bundle
+import android.provider.OpenableColumns
 import android.util.Base64
 import android.widget.Button
 import android.widget.EditText
@@ -33,6 +35,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.ByteArrayOutputStream
+import java.util.regex.Pattern
 
 class PerfilActivity: ComponentActivity() {
     // Aquí se implementará la funcionalidad de la actividad de perfil
@@ -71,6 +74,7 @@ class PerfilActivity: ComponentActivity() {
 
         usuariosViewModel.error.observe(this, Observer { error ->
             if (error != null) {
+                sweetalertManager.dismissLoadingAlert()
                 sweetalertManager.errorAlert(error, "Error", this)
             }
         })
@@ -161,6 +165,16 @@ class PerfilActivity: ComponentActivity() {
             }
         }
     }
+    private fun verificarContra(password: String) : Boolean {
+        //Checamos que la contraseña tenga minimo 8 caracteres, una minuscula, una mayuscula, un numero y un caracter especial
+        val pattern = Pattern.compile("^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*[@#\$%^&+=])(?=\\S+\$).{8,}\$")
+        val matcher = pattern.matcher(password)
+        if (!matcher.matches()) {
+            sweetalertManager.errorAlert("La contraseña debe tener al menos 8 caracteres, una mayúscula, una minúscula, un número y un caracter especial", "Error", this)
+            return false
+        }
+        return true
+    }
     override fun onBackPressed() {
         val drawerLayout = findViewById<DrawerLayout>(R.id.drawer_layout)
         if (drawerLayout.isDrawerOpen(GravityCompat.START)) {
@@ -191,7 +205,10 @@ class PerfilActivity: ComponentActivity() {
         var foto = "";
 
         if(fotoPerfil.drawable != null){
-           foto = convertImageViewToBase64(fotoPerfil)
+            //compimimos la imagen antes de convertirla a base64
+            val fotoBitmap = (fotoPerfil.drawable as BitmapDrawable).bitmap
+            val compressedImage = compressImage(fotoBitmap)
+           foto = convertImageBitmapToBase64(compressedImage)
         }
 
 
@@ -201,6 +218,11 @@ class PerfilActivity: ComponentActivity() {
         if(contrasenaUsuario != "" && confirmaContrasenaUsuario != ""){
             //Si las contraseñas no coinciden, mostramos un mensaje de error
             if(contrasenaUsuario != confirmaContrasenaUsuario){
+                if(!verificarContra(contrasenaUsuario)){
+                    sweetalertManager.dismissLoadingAlert()
+                    sweetalertManager.errorAlert("La contraseña debe tener al menos 8 caracteres, una mayúscula, una minúscula, un número y un caracter especial", "Error", this)
+                    return
+                }
                 sweetalertManager.dismissLoadingAlert()
                 sweetalertManager.errorAlert("Las contraseñas no coinciden", "Error", this)
                 return
@@ -231,6 +253,13 @@ class PerfilActivity: ComponentActivity() {
             //Hacemos el request
             usuariosViewModel.updateUsuario(userID, request)
         }
+    }
+
+    private fun compressImage(image: Bitmap): Bitmap {
+        val byteArrayOutputStream = ByteArrayOutputStream()
+        image.compress(Bitmap.CompressFormat.JPEG, 1, byteArrayOutputStream)
+        val byteArray = byteArrayOutputStream.toByteArray()
+        return BitmapFactory.decodeByteArray(byteArray, 0, byteArray.size)
     }
 
 
@@ -272,10 +301,16 @@ class PerfilActivity: ComponentActivity() {
         val imageBytes = Base64.decode(base64, Base64.DEFAULT)
         return BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
     }
+    private fun convertImageBitmapToBase64(image: Bitmap): String {
+        val byteArrayOutputStream = ByteArrayOutputStream()
+        image.compress(Bitmap.CompressFormat.PNG, 100, byteArrayOutputStream)
+        val byteArray = byteArrayOutputStream.toByteArray()
+        return Base64.encodeToString(byteArray, Base64.DEFAULT)
+    }
     private fun convertImageViewToBase64(imageView: ImageView): String {
         val bitmap = (imageView.drawable as BitmapDrawable).bitmap
         val byteArrayOutputStream = ByteArrayOutputStream()
-        var quality = 100
+        var quality = 1
         var byteArray: ByteArray
 
         do {
@@ -306,8 +341,24 @@ class PerfilActivity: ComponentActivity() {
         super.onActivityResult(requestCode, resultCode, data)
         if (resultCode == RESULT_OK && requestCode == IMAGE_PICK_CODE) {
             val imageUri = data?.data
-            val imagenInput = findViewById<ImageView>(R.id.logoIcon)
-            imagenInput.setImageURI(imageUri)
+            val fileSize = getFileSize(imageUri?: Uri.EMPTY)
+            if (fileSize > 5 * 1024 * 1024) { // 5MB in bytes
+                sweetalertManager.errorAlert("El archivo seleccionado es demasiado grande. Por favor, seleccione un archivo de menos de 5MB.", "Error", this)
+            } else {
+                val imagenInput = findViewById<ImageView>(R.id.logoIcon)
+                imagenInput.setImageURI(imageUri)
+            }
+        }
+    }
+    private fun getFileSize(uri: Uri): Long {
+        val cursor = contentResolver.query(uri, null, null, null, null)
+        return if (cursor != null && cursor.moveToFirst()) {
+            val sizeIndex = cursor.getColumnIndex(OpenableColumns.SIZE)
+            val size = cursor.getLong(sizeIndex)
+            cursor.close()
+            size
+        } else {
+            0
         }
     }
 

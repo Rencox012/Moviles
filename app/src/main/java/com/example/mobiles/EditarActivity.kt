@@ -54,6 +54,45 @@ class EditarActivity : ComponentActivity() {
             eliminarTransaccion()
         }
 
+        boton_ingreso.setOnClickListener {
+            val monto = findViewById<TextView>(R.id.amount_input).text.toString().toDouble()
+            val descripcion = findViewById<TextView>(R.id.description_input).text.toString()
+
+            if(selectedImages.isEmpty()){
+                sweetAlert().warningAlert("Debes seleccionar al menos una imagen", "Error", this)
+                return@setOnClickListener
+            }
+            if(descripcion.isEmpty()){
+                sweetAlert().warningAlert("Debes escribir una descripción", "Error", this)
+                return@setOnClickListener
+            }
+            if(monto <= 0){
+                sweetAlert().warningAlert("El monto debe ser mayor a 0", "Error", this)
+                return@setOnClickListener
+            }
+
+            modificarTransaccion(monto, "ingreso", descripcion, selectedImages)
+        }
+        boton_gasto.setOnClickListener {
+            val monto = findViewById<TextView>(R.id.amount_input).text.toString().toDouble()
+            val descripcion = findViewById<TextView>(R.id.description_input).text.toString()
+
+            if(selectedImages.isEmpty()){
+                sweetAlert().warningAlert("Debes seleccionar al menos una imagen", "Error", this)
+                return@setOnClickListener
+            }
+            if(descripcion.isEmpty()){
+                sweetAlert().warningAlert("Debes escribir una descripción", "Error", this)
+                return@setOnClickListener
+            }
+            if(monto <= 0){
+                sweetAlert().warningAlert("El monto debe ser mayor a 0", "Error", this)
+                return@setOnClickListener
+            }
+
+            modificarTransaccion(monto, "gasto", descripcion, selectedImages)
+        }
+
         //obtenemos el id de la transaccion
         transaccionID = intent.getStringExtra("TRANSACCION_ID").toString()
         obtenerUserID()
@@ -250,7 +289,23 @@ class EditarActivity : ComponentActivity() {
         }
 
     }
+    private fun modificarTransaccion(monto: Double, tipo: String, descripcion: String, imagenes: List<String>) {
+        //usamos el dao para actualizar la transaccion
+        CoroutineScope(Dispatchers.IO).launch {
+            DatabaseApp.database.transaccionDao().actualizarTransaccion(
+                transaccionID.toInt(),
+                monto,
+                tipo,
+                descripcion,
+                Gson().toJson(imagenes)
+            )
+            //alertamos al usuario que la transaccion fue modificada
+            withContext(Dispatchers.Main){
+                sweetAlert().successAlert("Transacción modificada", "Transacción modificada", this@EditarActivity)
+            }
+        }
 
+    }
 
     //endregion
 }

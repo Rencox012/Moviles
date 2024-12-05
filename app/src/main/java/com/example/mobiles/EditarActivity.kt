@@ -5,6 +5,8 @@ import android.content.Intent
 import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Bundle
+import android.text.Editable
+import android.text.TextWatcher
 import android.util.Base64
 import android.widget.Button
 import android.widget.ImageView
@@ -50,12 +52,40 @@ class EditarActivity : ComponentActivity() {
         val boton_gasto = findViewById<Button>(R.id.expense_button)
         val boton_borrar = findViewById<Button>(R.id.delete_button)
 
+        val monto_input = findViewById<TextView>(R.id.amount_input)
+
+        monto_input.addTextChangedListener(
+            object : TextWatcher {
+                override fun afterTextChanged(s: Editable?) {
+                    //No permitir letras ni caracteres especiales ni nada distinto a un numero
+                    if (s.toString().matches(Regex(".*[^0-9.].*"))) {
+                        monto_input.text = "0.0"
+                        return
+                    }
+                    if (s.toString().isNotEmpty()) {
+                        if (s.toString().toDouble() < 0) {
+                            monto_input.text = null
+                            sweetAlert().errorAlert("No se permiten montos negativos", "Error", this@EditarActivity)
+                        }
+                    }
+                }
+
+                override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {
+                    // No se necesita implementar
+                }
+
+                override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                    // No se necesita implementar
+                }
+            }
+        )
+
         boton_borrar.setOnClickListener {
             eliminarTransaccion()
         }
 
         boton_ingreso.setOnClickListener {
-            val monto = findViewById<TextView>(R.id.amount_input).text.toString().toDouble()
+            val monto = monto_input.text.toString().toDouble()
             val descripcion = findViewById<TextView>(R.id.description_input).text.toString()
 
             if(selectedImages.isEmpty()){

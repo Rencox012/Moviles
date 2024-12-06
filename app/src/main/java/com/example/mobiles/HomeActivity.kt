@@ -2,6 +2,7 @@ package com.example.mobiles
 
 import TransaccionesModelFactory
 import UsuariosViewModelFactory
+import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
 import android.database.CursorWindow
@@ -88,6 +89,12 @@ class HomeActivity : ComponentActivity() {
         val drawerLayout = findViewById<DrawerLayout>(R.id.drawer_layout)
         val menuButton = findViewById<ImageView>(R.id.menuButton)
         val logOffButton = findViewById<TextView>(R.id.logoutButton)
+        val sincronizarBoton = findViewById<TextView>(R.id.boton_sincronizar)
+
+
+        sincronizarBoton.setOnClickListener {
+            SincronizarManualmente()
+        }
 
 
 
@@ -456,6 +463,7 @@ class HomeActivity : ComponentActivity() {
     }
 
 
+    @SuppressLint("SuspiciousIndentation")
     private fun sincronizarTransacciones() {
         if (!isNetworkAvailable(this)) {
             //lo enviamos al main thread para que pueda mostrar el mensaje
@@ -490,9 +498,6 @@ class HomeActivity : ComponentActivity() {
                             val transac = transaccionesViewModel.actualizarTransaccionSuspend(transaccion.idRemoto!!, transaccionAEnviar)
                             // Si hubo algun error le avisamos al usuario y cancelamos la sincronización
                             if (transac == null) {
-                                CoroutineScope(Dispatchers.Main).launch {
-                                    sweetalertManager.errorAlert("Error al sincronizar la transacción", "Error", this@HomeActivity)
-                                }
                                 return@launch
                             }
                         } else {
@@ -529,6 +534,107 @@ class HomeActivity : ComponentActivity() {
             }
             // Nuevamente, si no hay errores, actualizamos el balance del usuario
             handleObtainBalance(userid, findViewById(R.id.total_savings))
+        }
+    }
+
+
+    private fun SincronizarManualmente(){
+        if (!isNetworkAvailable(this)) {
+            //lo enviamos al main thread para que pueda mostrar el mensaje
+            CoroutineScope(Dispatchers.Main).launch {
+                sweetalertManager.dismissLoadingAlert()
+                sweetalertManager.errorAlert("No hay conexión a internet", "Error", this@HomeActivity)
+
+            }
+            return
+        }
+        sweetalertManager.loadingAlert("Sincronizando transacciones", "Espere por favor", this)
+        // Empezamos por obtener las transacciones no sincronizadas
+        lifecycleScope.launch(Dispatchers.IO) {
+            val userid = usuariosViewModel.dataStoreManager.getUsuarioId().first() ?: ""
+            userID = userid
+            var transaccionesNoSincronizadas = emptyList<TransaccionEntity>()
+            try{
+                transaccionesNoSincronizadas = DatabaseApp.database.transaccionDao().obtenerTransaccionesNoSincronizadas()
+            }
+            catch (e: Exception){
+
+                //lo enviamos al main thread para que pueda mostrar el mensaje
+                CoroutineScope(Dispatchers.Main).launch {
+                    sweetalertManager.dismissLoadingAlert()
+                    sweetalertManager.errorAlert("Error al obtener las transacciones no sincronizadas", "Error", this@HomeActivity)
+                }
+            }
+            if (transaccionesNoSincronizadas.isEmpty()) {
+                CoroutineScope(Dispatchers.Main).launch {
+                    sweetalertManager.dismissLoadingAlert()
+                    sweetalertManager.successAlert("No hay transacciones por sincronizar", "Éxito", this@HomeActivity)
+                }
+
+                return@launch
+            }
+            // Obtenemos el id del usuario
+            val idUsuario = userid
+            if (idUsuario != "") {
+                // Iteramos sobre las transacciones no sincronizadas
+                for (transaccion in transaccionesNoSincronizadas) {
+                    try {
+                        // Si la transaccion ya tiene un idRemoto, quiere decir que fue creada, pero hay que actualizarla
+                        if (transaccion.idRemoto != null && transaccion.idRemoto != "") {
+                            val transaccionAEnviar = Transaccion.fromEntity(transaccion)
+                            val transac = transaccionesViewModel.actualizarTransaccionSuspend(transaccion.idRemoto!!, transaccionAEnviar)
+                            // Si hubo algun error le avisamos al usuario y cancelamos la sincronización
+                            if (transac == null) {
+                                CoroutineScope(Dispatchers.Main).launch {
+                                    sweetalertManager.dismissLoadingAlert()
+                                    sweetalertManager.errorAlert(
+                                        "Error al sincronizar transacciones",
+                                        "Error",
+                                        this@HomeActivity
+                                    )
+                                }
+                                    return@launch
+                            }
+                        } else {
+                            if(transaccion.activo == 0){
+                                continue
+                            }
+                            val transaccionEnviar = CreateTransactionRequest(
+                                usuario_id = idUsuario,
+                                monto = transaccion.monto,
+                                tipo = transaccion.tipo,
+                                descripcion = transaccion.descripcion ?: "",
+                                fecha_transac = transaccion.fechaTransac,
+                                imagen = Gson().fromJson(transaccion.imagen, object : com.google.gson.reflect.TypeToken<List<String>>() {}.type),
+                                estado = 1,
+                                activo = transaccion.activo
+                            )
+                            // Insertar transacción en el servidor usando la función suspend
+                            val transac = transaccionesViewModel.insertarTransaccionSuspend(transaccionEnviar)
+                            // Si no hubo algun error, tomamos el ID que nos regresa el servidor y lo guardamos en la base de datos local, usando el DAO
+                            if (transac != null) {
+                                DatabaseApp.database.transaccionDao().actualizarIdRemoto(transaccion.id, transac._id)
+                            }
+                        }
+                    } catch (e: Exception) {
+
+                        return@launch
+                    }
+                }
+            }
+            // Si no hay errores, marcamos las transacciones como sincronizadas
+            val ids = transaccionesNoSincronizadas.map { it.id }
+            for (id in ids) {
+                DatabaseApp.database.transaccionDao().marcarComoSincronizadas(listOf(id))
+            }
+            CoroutineScope(Dispatchers.Main).launch {
+                sweetalertManager.dismissLoadingAlert()
+                sweetalertManager.successAlert(
+                    "Transacciones sincronizadas",
+                    "Éxito",
+                    this@HomeActivity
+                )
+            }
         }
     }
 

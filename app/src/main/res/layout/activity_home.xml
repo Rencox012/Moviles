@@ -164,10 +164,24 @@
                         android:id="@+id/financial_advice"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="¡Buen trabajo!, has aprendido bien, sigue con este ritmo de ahorro."
+                        android:text=" Aquí inicia tu camino para ahorrar aun más"
                         android:textColor="@color/verdeFuerte"
                         android:textSize="16sp" />
                 </LinearLayout>
+
+                <Button
+                    android:id="@+id/boton_sincronizar"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Sincronizar transacciones"
+                    android:textColor="@color/verdeFuerte"
+                    android:backgroundTint="@color/azulAqua"
+                    android:layout_marginTop="10dp"
+                    android:padding="10dp"
+                    android:layout_marginBottom="10dp"
+                    android:layout_marginStart="10dp"
+                    android:layout_marginEnd="10dp"
+                    />
 
                 <LinearLayout
                     android:id="@+id/latest_movements_section"
